@@ -27,16 +27,6 @@ export default function TrackDataPage() {
       .catch((err) => console.error(err));
   }, []);
 
-  const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginTop: "1rem",
-    borderRadius: "0.5rem",
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-  };
-
   const thStyle = {
     backgroundColor: "#6B46C1",
     color: "#fff",
@@ -61,7 +51,7 @@ export default function TrackDataPage() {
         padding: "2rem",
         fontFamily: "sans-serif",
         backgroundColor: "#F9F9F9",
-        minHeight: "100dvh", // ✅ mobile-safe viewport height
+        minHeight: "100dvh", // mobile-safe viewport height
       }}
     >
       <h1
@@ -74,42 +64,55 @@ export default function TrackDataPage() {
         🏁 Track Data
       </h1>
 
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {[
-              "Track",
-              "Most Wins",
-              "",
-              "Most Podiums",
-              "",
-              "Most Poles",
-              "",
-              "Track Record Holder",
-              "Track Record",
-            ].map((h) => (
-              <th key={h} style={thStyle}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} style={getRowStyle(i)}>
-              <td style={tdStyle}>{row["track"]}</td>
-              <td style={tdStyle}>{row["wins driver"]}</td>
-              <td style={tdStyle}>{row["wins count"]}</td>
-              <td style={tdStyle}>{row["podiums driver"]}</td>
-              <td style={tdStyle}>{row["podiums count"]}</td>
-              <td style={tdStyle}>{row["poles driver"]}</td>
-              <td style={tdStyle}>{row["poles count"]}</td>
-              <td style={tdStyle}>{row["track record driver"]}</td>
-              <td style={tdStyle}>{row["track record lap time"]}</td>
+      {/* Wrap the table in a scrollable container for mobile */}
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            borderRadius: "0.5rem",
+            overflow: "hidden",
+            backgroundColor: "#fff",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            minWidth: "600px", // ensures table scrolls nicely on mobile
+          }}
+        >
+          <thead>
+            <tr>
+              {[
+                "Track",
+                "Most Wins",
+                "",
+                "Most Podiums",
+                "",
+                "Most Poles",
+                "",
+                "Track Record Holder",
+                "Track Record",
+              ].map((h) => (
+                <th key={h} style={thStyle}>
+                  {h}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={i} style={getRowStyle(i)}>
+                <td style={tdStyle}>{row["track"]}</td>
+                <td style={tdStyle}>{row["wins driver"]}</td>
+                <td style={tdStyle}>{row["wins count"]}</td>
+                <td style={tdStyle}>{row["podiums driver"]}</td>
+                <td style={tdStyle}>{row["podiums count"]}</td>
+                <td style={tdStyle}>{row["poles driver"]}</td>
+                <td style={tdStyle}>{row["poles count"]}</td>
+                <td style={tdStyle}>{row["track record driver"]}</td>
+                <td style={tdStyle}>{row["track record lap time"]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
