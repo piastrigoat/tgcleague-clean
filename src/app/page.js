@@ -101,9 +101,7 @@ export default function HomePage() {
           lineHeight: "1.6",
         }}
       >
-        Welcome to <strong>TGC</strong> — the home of racing stats, records, and
-        history. Dive into live standings, legendary halls of fame, detailed
-        track data, and the latest power rankings.
+        Welcome to the <strong>TGC</strong> website — Your hub for all things TGC!
       </p>
     </main>
   );
