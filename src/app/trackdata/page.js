@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 export default function TrackDataPage() {
   const [data, setData] = useState([]);
 
-  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1639274782&single=true&output=csv"; // 🔗 replace with your published Google Sheets CSV link
+  const csvUrl =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1639274782&single=true&output=csv";
 
   const parseCSV = (csvText) => {
     const lines = csvText.trim().split("\n");
@@ -60,7 +61,7 @@ export default function TrackDataPage() {
         padding: "2rem",
         fontFamily: "sans-serif",
         backgroundColor: "#F9F9F9",
-        minHeight: "100vh",
+        minHeight: "100dvh", // ✅ mobile-safe viewport height
       }}
     >
       <h1
