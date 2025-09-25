@@ -1,62 +1,84 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function StandingsPage() {
-  const [driverStandings, setDriverStandings] = useState([]);
-  const [constructorStandings, setConstructorStandings] = useState([]);
-  const [view, setView] = useState("drivers");
+  const [data, setData] = useState([]);
+  const [activeTab, setActiveTab] = useState("drivers");
 
-  const [isMobile, setIsMobile] = useState(false);
+  const csvUrl = ""; // <-- your Google Sheets CSV link
 
-  // Detect mobile screen width
+  const parseCSV = (csvText) => {
+    const lines = csvText.trim().split("\n");
+    const headers = lines[0].split(",");
+    return lines.slice(1).map((line) => {
+      const values = line.split(",");
+      return headers.reduce((obj, header, i) => {
+        obj[header.trim().toLowerCase()] = values[i]?.trim();
+        return obj;
+      }, {});
+    });
+  };
+
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize(); // initial check
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    fetch(csvUrl)
+      .then((res) => res.text())
+      .then((text) => setData(parseCSV(text)))
+      .catch((err) => console.error(err));
   }, []);
 
-  const titleStyle = {
-    color: "#6B46C1",
-    fontSize: "2.25rem",
-    marginBottom: "0.75rem",
-  };
+  // Split data
+  const drivers = data.filter((row) => row["driver"]);
+  const constructors = data.filter(
+    (row) => row["team"] && !row["driver"]
+  );
 
-  const buttonBase = {
-    padding: "0.5rem 0.9rem",
-    borderRadius: "8px",
+  // Styles
+  const tabStyle = (tab) => ({
+    padding: "0.75rem 1.5rem",
     cursor: "pointer",
-    border: "1px solid #6B46C1",
-    fontWeight: 600,
-    marginRight: "0.6rem",
-  };
+    fontWeight: activeTab === tab ? "bold" : "normal",
+    backgroundColor: activeTab === tab ? "#6B46C1" : "#E5E5E5",
+    color: activeTab === tab ? "#fff" : "#333",
+    borderRadius: "0.5rem 0.5rem 0 0",
+    marginRight: "0.5rem",
+    flex: 1,
+    textAlign: "center",
+  });
 
-  const activeBtn = { background: "#6B46C1", color: "#fff" };
-  const inactiveBtn = { background: "#fff", color: "#6B46C1" };
-
-  const cardStyle = {
-    background: "#fff",
-    borderRadius: "12px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-    overflow: "hidden",
+  const tableContainer = {
+    width: "100%",
+    overflowX: "auto",
     marginTop: "1rem",
-  };
-
-  const tableWrapper = {
-    overflowX: isMobile ? "auto" : "visible", // ✅ scroll only on mobile
+    borderRadius: "0.5rem",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
   };
 
   const tableStyle = {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: isMobile ? "700px" : "auto", // only set minWidth for mobile scroll
+    backgroundColor: "#fff",
+    minWidth: "600px", // forces horizontal scroll on mobile
   };
 
-  const theadStyle = { background: "#E9D8FD" };
-  const thStyle = { textAlign: "center", padding: "0.75rem", color: "#000" };
-  const tdStyle = { textAlign: "center", padding: "0.75rem" };
-  const rowHover = { background: "#E6E0F8" };
+  const thStyle = {
+    backgroundColor: "#6B46C1",
+    color: "#fff",
+    padding: "0.75rem",
+    textAlign: "left",
+    fontSize: "0.9rem",
+  };
+
+  const tdStyle = {
+    padding: "0.75rem",
+    color: "#000",
+    fontSize: "0.9rem",
+    textAlign: "left",
+  };
+
+  const getRowStyle = (index) => ({
+    backgroundColor: index % 2 === 0 ? "#F7F7F7" : "#fff",
+  });
 
   return (
     <main
@@ -64,100 +86,117 @@ export default function StandingsPage() {
         padding: "2rem",
         fontFamily: "sans-serif",
         backgroundColor: "#F9F9F9",
-        minHeight: "100dvh",
+        minHeight: "100vh",
       }}
     >
-      <h1 style={titleStyle}>🏁 Standings</h1>
+      <h1
+        style={{
+          color: "#6B46C1",
+          fontSize: "2rem",
+          marginBottom: "1rem",
+          textAlign: "center",
+        }}
+      >
+        🏎️ Torque Gaming Centre Standings
+      </h1>
 
-      {/* View buttons */}
-      <div style={{ marginBottom: "1rem" }}>
-        <button
-          style={{ ...buttonBase, ...(view === "drivers" ? activeBtn : inactiveBtn) }}
-          onClick={() => setView("drivers")}
+      {/* Tabs */}
+      <div style={{ display: "flex", marginBottom: "1rem" }}>
+        <div
+          style={tabStyle("drivers")}
+          onClick={() => setActiveTab("drivers")}
         >
           Drivers
-        </button>
-        <button
-          style={{ ...buttonBase, ...(view === "constructors" ? activeBtn : inactiveBtn) }}
-          onClick={() => setView("constructors")}
+        </div>
+        <div
+          style={tabStyle("constructors")}
+          onClick={() => setActiveTab("constructors")}
         >
           Constructors
-        </button>
+        </div>
       </div>
 
-      {/* Drivers */}
-      {view === "drivers" && (
-        <div style={cardStyle}>
-          <div style={tableWrapper}>
-            <table style={tableStyle}>
-              <thead style={theadStyle}>
-                <tr>
-                  {[
-                    "Pos","Driver","Team","Points","Wins","Podiums","Poles","FL","DNFs","Races"
-                  ].map((h) => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {driverStandings.map((d, i) => (
-                  <tr
-                    key={i}
-                    style={i % 2 === 0 ? {} : { background: "#FBF7FF" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = rowHover.background)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "" : "#FBF7FF")}
-                  >
-                    <td style={tdStyle}>{d.position}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{d.driver}</td>
-                    <td style={tdStyle}>{d.team}</td>
-                    <td style={tdStyle}>{d.points}</td>
-                    <td style={tdStyle}>{d.wins}</td>
-                    <td style={tdStyle}>{d.podiums}</td>
-                    <td style={tdStyle}>{d.poles}</td>
-                    <td style={tdStyle}>{d.fastestLaps}</td>
-                    <td style={tdStyle}>{d.dnfs}</td>
-                    <td style={tdStyle}>{d.races}</td>
-                  </tr>
+      {/* Drivers Table */}
+      {activeTab === "drivers" && (
+        <div style={tableContainer}>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                {[
+                  "Position",
+                  "Driver",
+                  "Team",
+                  "Points",
+                  "Wins",
+                  "Podiums",
+                  "Poles",
+                  "Fastest Laps",
+                  "DNFs",
+                  "Races",
+                ].map((h) => (
+                  <th key={h} style={thStyle}>
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {drivers.map((d, i) => (
+                <tr key={i} style={getRowStyle(i)}>
+                  <td style={tdStyle}>{d["position"]}</td>
+                  <td style={tdStyle}>{d["driver"]}</td>
+                  <td style={tdStyle}>{d["team"]}</td>
+                  <td style={tdStyle}>{d["points"]}</td>
+                  <td style={tdStyle}>{d["wins"]}</td>
+                  <td style={tdStyle}>{d["podiums"]}</td>
+                  <td style={tdStyle}>{d["poles"]}</td>
+                  <td style={tdStyle}>{d["fastest laps"]}</td>
+                  <td style={tdStyle}>{d["dnfs"]}</td>
+                  <td style={tdStyle}>{d["races"]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Constructors */}
-      {view === "constructors" && (
-        <div style={cardStyle}>
-          <div style={tableWrapper}>
-            <table style={tableStyle}>
-              <thead style={theadStyle}>
-                <tr>
-                  {["Pos","Team","Points","Wins","Podiums","Poles","FL","DNFs"].map((h) => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {constructorStandings.map((c, i) => (
-                  <tr
-                    key={i}
-                    style={i % 2 === 0 ? {} : { background: "#FBF7FF" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = rowHover.background)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "" : "#FBF7FF")}
-                  >
-                    <td style={tdStyle}>{c.position}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{c.team}</td>
-                    <td style={tdStyle}>{c.points}</td>
-                    <td style={tdStyle}>{c.wins}</td>
-                    <td style={tdStyle}>{c.podiums}</td>
-                    <td style={tdStyle}>{c.poles}</td>
-                    <td style={tdStyle}>{c.fastestLaps}</td>
-                    <td style={tdStyle}>{c.dnfs}</td>
-                  </tr>
+      {/* Constructors Table */}
+      {activeTab === "constructors" && (
+        <div style={tableContainer}>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                {[
+                  "Position",
+                  "Team",
+                  "Points",
+                  "Wins",
+                  "Podiums",
+                  "Poles",
+                  "Fastest Laps",
+                  "DNFs",
+                ].map((h) => (
+                  <th key={h} style={thStyle}>
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {constructors.map((c, i) => (
+                <tr key={i} style={getRowStyle(i)}>
+                  <td style={tdStyle}>{c["position"]}</td>
+                  <td style={tdStyle}>{c["team"]}</td>
+                  <td style={tdStyle}>{c["points"]}</td>
+                  <td style={tdStyle}>{c["wins"]}</td>
+                  <td style={tdStyle}>{c["podiums"]}</td>
+                  <td style={tdStyle}>{c["poles"]}</td>
+                  <td style={tdStyle}>{c["fastest laps"]}</td>
+                  <td style={tdStyle}>{c["dnfs"]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </main>
