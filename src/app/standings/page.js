@@ -82,7 +82,7 @@ export default function StandingsPage() {
 
   const tdStyle = {
     padding: "0.5rem",
-    color: "#000",
+    color: "#6B46C1",
   };
 
   const getRowStyle = (index) => ({
@@ -92,7 +92,7 @@ export default function StandingsPage() {
 
   return (
     <main style={{ padding: "2rem", fontFamily: "sans-serif", backgroundColor: "#F9F9F9", minHeight: "100vh" }}>
-      <h1 style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}>🏎️ TGC Standings</h1>
+      <h1 style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}>🏆 TGC Standings</h1>
 
       {/* Tabs */}
       <div style={{ display: "flex", marginBottom: "1rem" }}>
