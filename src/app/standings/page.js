@@ -3,66 +3,38 @@
 import { useEffect, useState } from "react";
 
 export default function StandingsPage() {
-  const [drivers, setDrivers] = useState([]);
-  const [constructors, setConstructors] = useState([]);
+  const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("drivers");
 
-  // Replace with your published Google Sheets CSV link
-  const csvUrl =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1934660296&single=true&output=csv";
+  const csvUrl = ""; // 🔗 Replace with your published Google Sheets CSV link
 
-  // Parse CSV text into array of objects
+  // Parse CSV into objects
   const parseCSV = (csvText) => {
-    const lines = csvText.trim().split("\n").map((line) => line.split(","));
-    return lines;
+    const lines = csvText.trim().split("\n");
+    const headers = lines[0].split(",");
+    return lines.slice(1).map((line) => {
+      const values = line.split(",");
+      return headers.reduce((obj, header, i) => {
+        obj[header.trim().toLowerCase()] = values[i]?.trim();
+        return obj;
+      }, {});
+    });
   };
 
   useEffect(() => {
     fetch(csvUrl)
       .then((res) => res.text())
-      .then((text) => {
-        const rows = parseCSV(text);
-
-        // First row is the header
-        const headers = rows[0];
-        const allData = rows.slice(1);
-
-        // Drivers = columns A–J
-        const driverData = allData
-          .map((row) => ({
-            position: row[0],
-            driver: row[1],
-            team: row[2],
-            points: row[3],
-            wins: row[4],
-            podiums: row[5],
-            poles: row[6],
-            fastestLaps: row[7],
-            dnfs: row[8],
-            races: row[9],
-          }))
-          .filter((d) => d.driver); // filter out empty rows
-
-        // Constructors = columns L–S
-        const constructorData = allData
-          .map((row) => ({
-            position: row[11],
-            team: row[12],
-            points: row[13], // <-- N column (index 13)
-            wins: row[14],
-            podiums: row[15],
-            poles: row[16],
-            fastestLaps: row[17],
-            dnfs: row[18],
-          }))
-          .filter((c) => c.team);
-
-        setDrivers(driverData);
-        setConstructors(constructorData);
-      })
+      .then((text) => setData(parseCSV(text)))
       .catch((err) => console.error(err));
   }, []);
 
+  // Drivers → A–J
+  const drivers = data.filter((row) => row["driver"] && row["points"]);
+
+  // Constructors → L–S (including N = points)
+  const constructors = data.filter((row) => row["team"] && row["points"]);
+
+  // Styles
   const tabStyle = (tab) => ({
     padding: "0.75rem 1.5rem",
     cursor: "pointer",
@@ -94,6 +66,7 @@ export default function StandingsPage() {
   const tdStyle = {
     padding: "0.5rem",
     color: "#000",
+    textAlign: "left",
   };
 
   const getRowStyle = (index) => ({
@@ -111,7 +84,11 @@ export default function StandingsPage() {
       }}
     >
       <h1
-        style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}
+        style={{
+          color: "#6B46C1",
+          fontSize: "2rem",
+          marginBottom: "1rem",
+        }}
       >
         🏎️ TGC Standings
       </h1>
@@ -165,16 +142,16 @@ export default function StandingsPage() {
                     getRowStyle(i).backgroundColor)
                 }
               >
-                <td style={tdStyle}>{d.position}</td>
-                <td style={tdStyle}>{d.driver}</td>
-                <td style={tdStyle}>{d.team}</td>
-                <td style={tdStyle}>{d.points}</td>
-                <td style={tdStyle}>{d.wins}</td>
-                <td style={tdStyle}>{d.podiums}</td>
-                <td style={tdStyle}>{d.poles}</td>
-                <td style={tdStyle}>{d.fastestLaps}</td>
-                <td style={tdStyle}>{d.dnfs}</td>
-                <td style={tdStyle}>{d.races}</td>
+                <td style={tdStyle}>{d["position"]}</td>
+                <td style={tdStyle}>{d["driver"]}</td>
+                <td style={tdStyle}>{d["team"]}</td>
+                <td style={tdStyle}>{d["points"]}</td>
+                <td style={tdStyle}>{d["wins"]}</td>
+                <td style={tdStyle}>{d["podiums"]}</td>
+                <td style={tdStyle}>{d["poles"]}</td>
+                <td style={tdStyle}>{d["fastest laps"]}</td>
+                <td style={tdStyle}>{d["dnfs"]}</td>
+                <td style={tdStyle}>{d["races"]}</td>
               </tr>
             ))}
           </tbody>
@@ -215,14 +192,14 @@ export default function StandingsPage() {
                     getRowStyle(i).backgroundColor)
                 }
               >
-                <td style={tdStyle}>{c.position}</td>
-                <td style={tdStyle}>{c.team}</td>
-                <td style={tdStyle}>{c.points}</td>
-                <td style={tdStyle}>{c.wins}</td>
-                <td style={tdStyle}>{c.podiums}</td>
-                <td style={tdStyle}>{c.poles}</td>
-                <td style={tdStyle}>{c.fastestLaps}</td>
-                <td style={tdStyle}>{c.dnfs}</td>
+                <td style={tdStyle}>{c["position"]}</td>
+                <td style={tdStyle}>{c["team"]}</td>
+                <td style={tdStyle}>{c["points"]}</td>
+                <td style={tdStyle}>{c["wins"]}</td>
+                <td style={tdStyle}>{c["podiums"]}</td>
+                <td style={tdStyle}>{c["poles"]}</td>
+                <td style={tdStyle}>{c["fastest laps"]}</td>
+                <td style={tdStyle}>{c["dnfs"]}</td>
               </tr>
             ))}
           </tbody>
