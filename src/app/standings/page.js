@@ -4,18 +4,17 @@ import { useEffect, useState } from "react";
 
 export default function StandingsPage() {
   const [data, setData] = useState([]);
-  const [activeTab, setActiveTab] = useState("drivers");
+  const [activeTab, setActiveTab] = useState("drivers"); // default tab
 
-  const csvUrl = ""; // 🔗 Replace with your published Google Sheets CSV link
+  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1934660296&single=true&output=csv"; // replace with your published Google Sheets CSV link
 
-  // Parse CSV into objects
   const parseCSV = (csvText) => {
     const lines = csvText.trim().split("\n");
     const headers = lines[0].split(",");
     return lines.slice(1).map((line) => {
       const values = line.split(",");
       return headers.reduce((obj, header, i) => {
-        obj[header.trim().toLowerCase()] = values[i]?.trim();
+        obj[header.trim()] = values[i] || "";
         return obj;
       }, {});
     });
@@ -28,13 +27,31 @@ export default function StandingsPage() {
       .catch((err) => console.error(err));
   }, []);
 
-  // Drivers → A–J
-  const drivers = data.filter((row) => row["driver"] && row["points"]);
+  // Drivers table: columns A-J
+  const drivers = data.map((row) => ({
+    position: row["Position"] || row["A"],
+    driver: row["Driver"] || row["B"],
+    team: row["Team"] || row["C"],
+    points: row["Points"] || row["D"],
+    wins: row["Wins"] || row["E"],
+    podiums: row["Podiums"] || row["F"],
+    poles: row["Poles"] || row["G"],
+    fastestLaps: row["Fastest Laps"] || row["H"],
+    dnfs: row["DNFs"] || row["I"],
+    races: row["Races"] || row["J"],
+  }));
 
-  // Constructors → L–S (including N = points)
-  const constructors = data.filter((row) => row["team"] && row["points"]);
+  // Constructors table: columns L-S
+  const constructors = data.map((row) => ({
+    position: row["L"],
+    team: row["M"],
+    wins: row["O"],
+    podiums: row["P"],
+    poles: row["Q"],
+    fastestLaps: row["R"],
+    dnfs: row["S"],
+  })).filter(c => c.position); // only rows that exist
 
-  // Styles
   const tabStyle = (tab) => ({
     padding: "0.75rem 1.5rem",
     cursor: "pointer",
@@ -66,7 +83,6 @@ export default function StandingsPage() {
   const tdStyle = {
     padding: "0.5rem",
     color: "#000",
-    textAlign: "left",
   };
 
   const getRowStyle = (index) => ({
@@ -75,35 +91,13 @@ export default function StandingsPage() {
   });
 
   return (
-    <main
-      style={{
-        padding: "2rem",
-        fontFamily: "sans-serif",
-        backgroundColor: "#F9F9F9",
-        minHeight: "100vh",
-      }}
-    >
-      <h1
-        style={{
-          color: "#6B46C1",
-          fontSize: "2rem",
-          marginBottom: "1rem",
-        }}
-      >
-        🏎️ TGC Standings
-      </h1>
+    <main style={{ padding: "2rem", fontFamily: "sans-serif", backgroundColor: "#F9F9F9", minHeight: "100vh" }}>
+      <h1 style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}>🏎️ TGC Standings</h1>
 
       {/* Tabs */}
       <div style={{ display: "flex", marginBottom: "1rem" }}>
-        <div style={tabStyle("drivers")} onClick={() => setActiveTab("drivers")}>
-          Drivers
-        </div>
-        <div
-          style={tabStyle("constructors")}
-          onClick={() => setActiveTab("constructors")}
-        >
-          Constructors
-        </div>
+        <div style={tabStyle("drivers")} onClick={() => setActiveTab("drivers")}>Drivers</div>
+        <div style={tabStyle("constructors")} onClick={() => setActiveTab("constructors")}>Constructors</div>
       </div>
 
       {/* Drivers Table */}
@@ -111,47 +105,26 @@ export default function StandingsPage() {
         <table style={tableStyle}>
           <thead>
             <tr>
-              {[
-                "Position",
-                "Driver",
-                "Team",
-                "Points",
-                "Wins",
-                "Podiums",
-                "Poles",
-                "Fastest Laps",
-                "DNFs",
-                "Races",
-              ].map((h) => (
-                <th key={h} style={thStyle}>
-                  {h}
-                </th>
+              {["Position","Driver","Team","Points","Wins","Podiums","Poles","Fastest Laps","DNFs","Races"].map((h) => (
+                <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {drivers.map((d, i) => (
-              <tr
-                key={i}
-                style={getRowStyle(i)}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#EDEDED")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    getRowStyle(i).backgroundColor)
-                }
-              >
-                <td style={tdStyle}>{d["position"]}</td>
-                <td style={tdStyle}>{d["driver"]}</td>
-                <td style={tdStyle}>{d["team"]}</td>
-                <td style={tdStyle}>{d["points"]}</td>
-                <td style={tdStyle}>{d["wins"]}</td>
-                <td style={tdStyle}>{d["podiums"]}</td>
-                <td style={tdStyle}>{d["poles"]}</td>
-                <td style={tdStyle}>{d["fastest laps"]}</td>
-                <td style={tdStyle}>{d["dnfs"]}</td>
-                <td style={tdStyle}>{d["races"]}</td>
+              <tr key={i} style={getRowStyle(i)} 
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
+                <td style={tdStyle}>{d.position}</td>
+                <td style={tdStyle}>{d.driver}</td>
+                <td style={tdStyle}>{d.team}</td>
+                <td style={tdStyle}>{d.points}</td>
+                <td style={tdStyle}>{d.wins}</td>
+                <td style={tdStyle}>{d.podiums}</td>
+                <td style={tdStyle}>{d.poles}</td>
+                <td style={tdStyle}>{d.fastestLaps}</td>
+                <td style={tdStyle}>{d.dnfs}</td>
+                <td style={tdStyle}>{d.races}</td>
               </tr>
             ))}
           </tbody>
@@ -163,43 +136,23 @@ export default function StandingsPage() {
         <table style={tableStyle}>
           <thead>
             <tr>
-              {[
-                "Position",
-                "Team",
-                "Points",
-                "Wins",
-                "Podiums",
-                "Poles",
-                "Fastest Laps",
-                "DNFs",
-              ].map((h) => (
-                <th key={h} style={thStyle}>
-                  {h}
-                </th>
+              {["Position","Team","Wins","Podiums","Poles","Fastest Laps","DNFs"].map((h) => (
+                <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {constructors.map((c, i) => (
-              <tr
-                key={i}
-                style={getRowStyle(i)}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#EDEDED")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    getRowStyle(i).backgroundColor)
-                }
-              >
-                <td style={tdStyle}>{c["position"]}</td>
-                <td style={tdStyle}>{c["team"]}</td>
-                <td style={tdStyle}>{c["points"]}</td>
-                <td style={tdStyle}>{c["wins"]}</td>
-                <td style={tdStyle}>{c["podiums"]}</td>
-                <td style={tdStyle}>{c["poles"]}</td>
-                <td style={tdStyle}>{c["fastest laps"]}</td>
-                <td style={tdStyle}>{c["dnfs"]}</td>
+              <tr key={i} style={getRowStyle(i)} 
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
+                <td style={tdStyle}>{c.position}</td>
+                <td style={tdStyle}>{c.team}</td>
+                <td style={tdStyle}>{c.wins}</td>
+                <td style={tdStyle}>{c.podiums}</td>
+                <td style={tdStyle}>{c.poles}</td>
+                <td style={tdStyle}>{c.fastestLaps}</td>
+                <td style={tdStyle}>{c.dnfs}</td>
               </tr>
             ))}
           </tbody>
