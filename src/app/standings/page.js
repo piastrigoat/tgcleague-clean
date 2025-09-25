@@ -1,164 +1,162 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function StandingsPage() {
-  const [driverStandings, setDriverStandings] = useState([]);
-  const [constructorStandings, setConstructorStandings] = useState([]);
-  const [view, setView] = useState("drivers");
+  const [data, setData] = useState([]);
+  const [activeTab, setActiveTab] = useState("drivers"); // default tab
 
-  const [isMobile, setIsMobile] = useState(false);
+  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1934660296&single=true&output=csv"; // replace with your published Google Sheets CSV link
 
-  // Detect mobile screen width
+  const parseCSV = (csvText) => {
+    const lines = csvText.trim().split("\n");
+    const headers = lines[0].split(",");
+    return lines.slice(1).map((line) => {
+      const values = line.split(",");
+      return headers.reduce((obj, header, i) => {
+        obj[header.trim()] = values[i] || "";
+        return obj;
+      }, {});
+    });
+  };
+
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize(); // initial check
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    fetch(csvUrl)
+      .then((res) => res.text())
+      .then((text) => setData(parseCSV(text)))
+      .catch((err) => console.error(err));
   }, []);
 
-  const titleStyle = {
-    color: "#6B46C1",
-    fontSize: "2.25rem",
-    marginBottom: "0.75rem",
-  };
+  // Drivers table: columns A-J
+  const drivers = data.map((row) => ({
+    position: row["Position"] || row["A"],
+    driver: row["Driver"] || row["B"],
+    team: row["Team"] || row["C"],
+    points: row["Points"] || row["D"],
+    wins: row["Wins"] || row["E"],
+    podiums: row["Podiums"] || row["F"],
+    poles: row["Poles"] || row["G"],
+    fastestLaps: row["Fastest Laps"] || row["H"],
+    dnfs: row["DNFs"] || row["I"],
+    races: row["Races"] || row["J"],
+  }));
 
-  const buttonBase = {
-    padding: "0.5rem 0.9rem",
-    borderRadius: "8px",
+  // Constructors table: columns L-S
+  const constructors = data.map((row) => ({
+    position: row["L"],
+    team: row["M"],
+    wins: row["O"],
+    podiums: row["P"],
+    poles: row["Q"],
+    fastestLaps: row["R"],
+    dnfs: row["S"],
+  })).filter(c => c.position); // only rows that exist
+
+  const tabStyle = (tab) => ({
+    padding: "0.75rem 1.5rem",
     cursor: "pointer",
-    border: "1px solid #6B46C1",
-    fontWeight: 600,
-    marginRight: "0.6rem",
-  };
-
-  const activeBtn = { background: "#6B46C1", color: "#fff" };
-  const inactiveBtn = { background: "#fff", color: "#6B46C1" };
-
-  const cardStyle = {
-    background: "#fff",
-    borderRadius: "12px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-    overflow: "hidden",
-    marginTop: "1rem",
-  };
-
-  const tableWrapper = {
-    overflowX: isMobile ? "auto" : "visible", // ✅ scroll only on mobile
-  };
+    fontWeight: activeTab === tab ? "bold" : "normal",
+    backgroundColor: activeTab === tab ? "#6B46C1" : "#E5E5E5",
+    color: activeTab === tab ? "#fff" : "#333",
+    borderRadius: "0.5rem 0.5rem 0 0",
+    marginRight: "0.5rem",
+    boxShadow: activeTab === tab ? "0 4px 6px rgba(0,0,0,0.1)" : "none",
+  });
 
   const tableStyle = {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: isMobile ? "700px" : "auto", // only set minWidth for mobile scroll
+    marginTop: "1rem",
+    borderRadius: "0.5rem",
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
   };
 
-  const theadStyle = { background: "#E9D8FD" };
-  const thStyle = { textAlign: "center", padding: "0.75rem", color: "#000" };
-  const tdStyle = { textAlign: "center", padding: "0.75rem" };
-  const rowHover = { background: "#E6E0F8" };
+  const thStyle = {
+    backgroundColor: "#6B46C1",
+    color: "#fff",
+    padding: "0.5rem",
+    textAlign: "left",
+  };
+
+  const tdStyle = {
+    padding: "0.5rem",
+    color: "#000",
+  };
+
+  const getRowStyle = (index) => ({
+    backgroundColor: index % 2 === 0 ? "#F7F7F7" : "#fff",
+    transition: "background-color 0.2s",
+  });
 
   return (
-    <main
-      style={{
-        padding: "2rem",
-        fontFamily: "sans-serif",
-        backgroundColor: "#F9F9F9",
-        minHeight: "100dvh",
-      }}
-    >
-      <h1 style={titleStyle}>🏁 Standings</h1>
+    <main style={{ padding: "2rem", fontFamily: "sans-serif", backgroundColor: "#F9F9F9", minHeight: "100vh" }}>
+      <h1 style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}>🏎️ TGC Standings</h1>
 
-      {/* View buttons */}
-      <div style={{ marginBottom: "1rem" }}>
-        <button
-          style={{ ...buttonBase, ...(view === "drivers" ? activeBtn : inactiveBtn) }}
-          onClick={() => setView("drivers")}
-        >
-          Drivers
-        </button>
-        <button
-          style={{ ...buttonBase, ...(view === "constructors" ? activeBtn : inactiveBtn) }}
-          onClick={() => setView("constructors")}
-        >
-          Constructors
-        </button>
+      {/* Tabs */}
+      <div style={{ display: "flex", marginBottom: "1rem" }}>
+        <div style={tabStyle("drivers")} onClick={() => setActiveTab("drivers")}>Drivers</div>
+        <div style={tabStyle("constructors")} onClick={() => setActiveTab("constructors")}>Constructors</div>
       </div>
 
-      {/* Drivers */}
-      {view === "drivers" && (
-        <div style={cardStyle}>
-          <div style={tableWrapper}>
-            <table style={tableStyle}>
-              <thead style={theadStyle}>
-                <tr>
-                  {[
-                    "Pos","Driver","Team","Points","Wins","Podiums","Poles","FL","DNFs","Races"
-                  ].map((h) => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {driverStandings.map((d, i) => (
-                  <tr
-                    key={i}
-                    style={i % 2 === 0 ? {} : { background: "#FBF7FF" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = rowHover.background)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "" : "#FBF7FF")}
-                  >
-                    <td style={tdStyle}>{d.position}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{d.driver}</td>
-                    <td style={tdStyle}>{d.team}</td>
-                    <td style={tdStyle}>{d.points}</td>
-                    <td style={tdStyle}>{d.wins}</td>
-                    <td style={tdStyle}>{d.podiums}</td>
-                    <td style={tdStyle}>{d.poles}</td>
-                    <td style={tdStyle}>{d.fastestLaps}</td>
-                    <td style={tdStyle}>{d.dnfs}</td>
-                    <td style={tdStyle}>{d.races}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* Drivers Table */}
+      {activeTab === "drivers" && (
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              {["Position","Driver","Team","Points","Wins","Podiums","Poles","Fastest Laps","DNFs","Races"].map((h) => (
+                <th key={h} style={thStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {drivers.map((d, i) => (
+              <tr key={i} style={getRowStyle(i)} 
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
+                <td style={tdStyle}>{d.position}</td>
+                <td style={tdStyle}>{d.driver}</td>
+                <td style={tdStyle}>{d.team}</td>
+                <td style={tdStyle}>{d.points}</td>
+                <td style={tdStyle}>{d.wins}</td>
+                <td style={tdStyle}>{d.podiums}</td>
+                <td style={tdStyle}>{d.poles}</td>
+                <td style={tdStyle}>{d.fastestLaps}</td>
+                <td style={tdStyle}>{d.dnfs}</td>
+                <td style={tdStyle}>{d.races}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      {/* Constructors */}
-      {view === "constructors" && (
-        <div style={cardStyle}>
-          <div style={tableWrapper}>
-            <table style={tableStyle}>
-              <thead style={theadStyle}>
-                <tr>
-                  {["Pos","Team","Points","Wins","Podiums","Poles","FL","DNFs"].map((h) => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {constructorStandings.map((c, i) => (
-                  <tr
-                    key={i}
-                    style={i % 2 === 0 ? {} : { background: "#FBF7FF" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = rowHover.background)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "" : "#FBF7FF")}
-                  >
-                    <td style={tdStyle}>{c.position}</td>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>{c.team}</td>
-                    <td style={tdStyle}>{c.points}</td>
-                    <td style={tdStyle}>{c.wins}</td>
-                    <td style={tdStyle}>{c.podiums}</td>
-                    <td style={tdStyle}>{c.poles}</td>
-                    <td style={tdStyle}>{c.fastestLaps}</td>
-                    <td style={tdStyle}>{c.dnfs}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* Constructors Table */}
+      {activeTab === "constructors" && (
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              {["Position","Team","Wins","Podiums","Poles","Fastest Laps","DNFs"].map((h) => (
+                <th key={h} style={thStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {constructors.map((c, i) => (
+              <tr key={i} style={getRowStyle(i)} 
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
+                <td style={tdStyle}>{c.position}</td>
+                <td style={tdStyle}>{c.team}</td>
+                <td style={tdStyle}>{c.wins}</td>
+                <td style={tdStyle}>{c.podiums}</td>
+                <td style={tdStyle}>{c.poles}</td>
+                <td style={tdStyle}>{c.fastestLaps}</td>
+                <td style={tdStyle}>{c.dnfs}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </main>
   );
