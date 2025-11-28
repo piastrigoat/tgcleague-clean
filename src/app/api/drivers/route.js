@@ -7,18 +7,19 @@ const auth = new google.auth.GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
 });
 
-export default async function handler(req, res) {
+export async function GET() {
   try {
     const client = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: client });
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: "Drivers",
     });
-    const values = response.data.values || [];
-    res.status(200).json(values); // [Name, Constructor, Price]
+
+    return Response.json(response.data.values || []);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch drivers" });
+    return Response.json({ error: "Failed to fetch drivers" }, { status: 500 });
   }
 }
