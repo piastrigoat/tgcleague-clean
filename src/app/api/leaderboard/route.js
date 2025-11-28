@@ -1,31 +1,11 @@
-import { google } from 'googleapis';
+let PICKS_DB = []; // same as picks file, but ideally move to a database
 
-const SHEET_ID = process.env.SHEET_ID;
+export async function GET() {
+  // placeholder: return dummy points
+  const leaderboard = PICKS_DB.map(u => ({
+    username: u.username,
+    totalPoints: Math.floor(Math.random() * 100), // replace with real logic
+  }));
 
-const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
-
-export default async function handler(req, res) {
-  try {
-    const client = await auth.getClient();
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    const result = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: 'Users',
-    });
-
-    const users = result.data.values || [];
-    // Expect Users rows: [username, driver1, driver2, driver3, constructor, totalPoints]
-    const leaderboard = users.map(u => ({
-      username: u[0],
-      totalPoints: parseInt(u[5] || '0', 10),
-    })).sort((a, b) => b.totalPoints - a.totalPoints);
-
-    res.status(200).json(leaderboard);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
-  }
+  return Response.json(leaderboard);
 }
