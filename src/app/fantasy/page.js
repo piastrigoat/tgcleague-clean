@@ -1,20 +1,18 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function FantasyPage() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState('');
   const [drivers, setDrivers] = useState([]);
-  const [constructor, setConstructor] = useState("");
-  const [picks, setPicks] = useState(["", "", ""]);
+  const [constructorPick, setConstructorPick] = useState('');
+  const [picks, setPicks] = useState(['', '', '']);
   const [leaderboard, setLeaderboard] = useState([]);
 
   useEffect(() => {
-    fetch("/api/drivers").then((r) => r.json()).then(setDrivers);
+    fetch('/api/drivers').then(r => r.json()).then(setDrivers).catch(console.error);
   }, []);
 
   const fetchLeaderboard = () => {
-    fetch("/api/leaderboard").then((r) => r.json()).then(setLeaderboard);
+    fetch('/api/leaderboard').then(r => r.json()).then(setLeaderboard).catch(console.error);
   };
 
   useEffect(() => {
@@ -24,197 +22,106 @@ export default function FantasyPage() {
   }, []);
 
   const submitPicks = async () => {
-    await fetch("/api/picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, picks, constructor }),
+    if (!username) return alert('Please enter a username!');
+    if (picks.some(p => !p)) return alert('Please select all 3 drivers!');
+    if (!constructorPick) return alert('Please select a constructor!');
+
+    const res = await fetch('/api/picks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, picks, constructor: constructorPick }),
     });
-    fetchLeaderboard();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('Error: ' + (err.error || res.statusText));
+    } else {
+      alert('Picks submitted!');
+      fetchLeaderboard();
+    }
   };
 
+  // remember username locally
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' && localStorage.getItem('tgc_username');
+    if (saved) setUsername(saved);
+  }, []);
+  useEffect(() => {
+    if (username) localStorage.setItem('tgc_username', username);
+  }, [username]);
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#000",
-        color: "#fff",
-        padding: "2rem",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "850px",
-          margin: "0 auto",
-          backgroundColor: "#111",
-          padding: "2rem",
-          borderRadius: "15px",
-          boxShadow: "0 0 30px rgba(221,51,51,0.4)",
-        }}
-      >
-        <h1
-          style={{
-            textAlign: "center",
-            color: "#dd3333ff",
-            fontSize: "2.6rem",
-            fontWeight: "800",
-            marginBottom: "1.5rem",
-            letterSpacing: "-1px",
-          }}
-        >
-          🔮 TGC Fantasy
-        </h1>
+    <div style={{
+      maxWidth: 900,
+      margin: '20px auto',
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      padding: 20,
+      backgroundColor: '#f4f4f9',
+      borderRadius: 10,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+    }}>
+      <h1 style={{ textAlign: 'center', color: '#1a202c' }}>🏎 Fantasy Racing League 🏁</h1>
 
-        {/* Username */}
-        <div style={{ marginBottom: "1.5rem" }}>
-          <label style={{ fontWeight: "600" }}>Username</label>
-          <input
-            placeholder="Enter your fantasy name..."
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.8rem",
-              marginTop: "0.5rem",
-              borderRadius: "8px",
-              border: "2px solid #dd3333ff",
-              backgroundColor: "#000",
-              color: "#fff",
-              fontSize: "1rem",
-            }}
-          />
-        </div>
+      <div style={{ margin: '20px 0', textAlign: 'center' }}>
+        <input
+          placeholder='Enter your username'
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          style={{ padding: 10, fontSize: 16, width: 300, borderRadius: 6, border: '1px solid #ccc' }}
+        />
+      </div>
 
-        {/* Pick Drivers */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h2 style={{ color: "#dd3333ff", marginBottom: "0.5rem" }}>
-            Drivers
-          </h2>
-
-          {picks.map((_, i) => (
+      <div style={{ margin: '20px 0' }}>
+        <h2 style={{ color: '#2d3748' }}>Pick 3 Drivers</h2>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {picks.map((d, i) => (
             <select
               key={i}
               value={picks[i]}
-              onChange={(e) =>
-                setPicks((p) => {
-                  p[i] = e.target.value;
-                  return [...p];
-                })
-              }
-              style={{
-                width: "100%",
-                padding: "0.8rem",
-                marginTop: "0.7rem",
-                borderRadius: "8px",
-                backgroundColor: "#000",
-                color: "#fff",
-                border: "2px solid #dd3333ff",
-              }}
+              onChange={e => setPicks(p => { p[i] = e.target.value; return [...p]; })}
+              style={{ padding: 10, fontSize: 16, borderRadius: 6, border: '1px solid #ccc', minWidth: 200 }}
             >
-              <option value="">Select driver</option>
-              {drivers.map((dr) => (
-                <option key={dr[0]}>{dr[0]}</option>
-              ))}
+              <option value=''>Select driver</option>
+              {drivers.map(dr => <option key={dr[0]} value={dr[0]}>{dr[0]} ({dr[1]})</option>)}
             </select>
           ))}
         </div>
+      </div>
 
-        {/* Pick Constructor */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h2 style={{ color: "#dd3333ff", marginBottom: "0.5rem" }}>
-            Constructor
-          </h2>
+      <div style={{ margin: '20px 0' }}>
+        <h2 style={{ color: '#2d3748' }}>Pick 1 Constructor</h2>
+        <select value={constructorPick} onChange={e => setConstructorPick(e.target.value)}
+          style={{ padding: 10, fontSize: 16, borderRadius: 6, border: '1px solid #ccc', minWidth: 220 }}>
+          <option value=''>Select constructor</option>
+          {[...new Set(drivers.map(d => d[1]))].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
 
-          <select
-            value={constructor}
-            onChange={(e) => setConstructor(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.8rem",
-              borderRadius: "8px",
-              backgroundColor: "#000",
-              color: "#fff",
-              border: "2px solid #dd3333ff",
-            }}
-          >
-            <option value="">Select constructor</option>
-            {[...new Set(drivers.map((d) => d[1]))].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </div>
+      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button onClick={submitPicks} style={{
+          backgroundColor: '#3182ce', color: 'white', padding: '10px 30px', fontSize: 16,
+          border: 'none', borderRadius: 6, cursor: 'pointer'
+        }}>Submit Picks</button>
+      </div>
 
-        {/* Submit Button */}
-        <button
-          onClick={submitPicks}
-          style={{
-            width: "100%",
-            padding: "1rem",
-            borderRadius: "10px",
-            backgroundColor: "#dd3333ff",
-            border: "none",
-            color: "#fff",
-            fontWeight: "700",
-            fontSize: "1.2rem",
-            cursor: "pointer",
-            transition: "0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#b02020";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#dd3333ff";
-          }}
-        >
-          Submit Picks
-        </button>
-
-        {/* Leaderboard */}
-        <h2
-          style={{
-            marginTop: "3rem",
-            color: "#dd3333ff",
-            fontWeight: "700",
-            fontSize: "1.8rem",
-          }}
-        >
-          Leaderboard
-        </h2>
-
-        <table
-          style={{
-            width: "100%",
-            marginTop: "1rem",
-            borderCollapse: "collapse",
-            borderRadius: "10px",
-            overflow: "hidden",
-          }}
-        >
+      <div style={{ marginTop: 40 }}>
+        <h2 style={{ color: '#2d3748', textAlign: 'center' }}>Leaderboard</h2>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
           <thead>
-            <tr style={{ backgroundColor: "#dd3333ff", color: "#fff" }}>
-              <th style={{ padding: "0.8rem", textAlign: "left" }}>User</th>
-              <th style={{ padding: "0.8rem", textAlign: "right" }}>Points</th>
+            <tr style={{ backgroundColor: '#e2e8f0' }}>
+              <th style={{ border: '1px solid #cbd5e0', padding: 10 }}>User</th>
+              <th style={{ border: '1px solid #cbd5e0', padding: 10 }}>Points</th>
             </tr>
           </thead>
-
           <tbody>
-            {leaderboard.map((u) => (
-              <tr
-                key={u.username}
-                style={{
-                  backgroundColor: "#111",
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                <td style={{ padding: "0.8rem" }}>{u.username}</td>
-                <td style={{ padding: "0.8rem", textAlign: "right" }}>
-                  {u.totalPoints}
-                </td>
+            {leaderboard.map(u => (
+              <tr key={u.username} style={{ textAlign: 'center' }}>
+                <td style={{ border: '1px solid #cbd5e0', padding: 10 }}>{u.username}</td>
+                <td style={{ border: '1px solid #cbd5e0', padding: 10 }}>{u.totalPoints}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

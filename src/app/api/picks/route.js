@@ -1,163 +1,74 @@
-"use client";
+import { google } from 'googleapis';
 
-import { useEffect, useState } from "react";
+const SHEET_ID = process.env.SHEET_ID;
+const F1_POINTS = [25,18,15,12,10,8,6,4,2,1]; // positions 1..10
 
-export default function StandingsPage() {
-  const [data, setData] = useState([]);
-  const [activeTab, setActiveTab] = useState("drivers"); // default tab
+const auth = new google.auth.GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
 
-  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8dnVwFjNW0DW7zViYvDy7MlyhAB7Sr31cb3iumxBztD3fAhbNqBcj0vRSB8o0ZrcaWXwtX4JUe7gs/pub?gid=1934660296&single=true&output=csv"; // replace with your published Google Sheets CSV link
+async function readSheet(tabName) {
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: 'v4', auth: client });
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: tabName,
+  });
+  return res.data.values || [];
+}
 
-  const parseCSV = (csvText) => {
-    const lines = csvText.trim().split("\n");
-    const headers = lines[0].split(",");
-    return lines.slice(1).map((line) => {
-      const values = line.split(",");
-      return headers.reduce((obj, header, i) => {
-        obj[header.trim()] = values[i] || "";
-        return obj;
-      }, {});
+async function writeUserPick(username, picks, totalPoints = 0) {
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: 'v4', auth: client });
+  const users = await readSheet('Users');
+  const rowIndex = users.findIndex(r => r[0] === username);
+  const row = [username, ...picks, totalPoints];
+
+  if (rowIndex === -1) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: 'Users',
+      valueInputOption: 'RAW',
+      resource: { values: [row] },
     });
-  };
+  } else {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `Users!A${rowIndex+1}:F${rowIndex+1}`,
+      valueInputOption: 'RAW',
+      resource: { values: [row] },
+    });
+  }
+}
 
-  useEffect(() => {
-    fetch(csvUrl)
-      .then((res) => res.text())
-      .then((text) => setData(parseCSV(text)))
-      .catch((err) => console.error(err));
-  }, []);
+async function calculatePoints(picks) {
+  const results = await readSheet('Results'); // [Race, Name, Position]
+  let points = 0;
 
-  // Drivers table: columns A-J
-  const drivers = data.map((row) => ({
-    position: row["Position"] || row["A"],
-    driver: row["Driver"] || row["B"],
-    team: row["Team"] || row["C"],
-    points: row["Points"] || row["D"],
-    wins: row["Wins"] || row["E"],
-    podiums: row["Podiums"] || row["F"],
-    poles: row["Poles"] || row["G"],
-    fastestLaps: row["Fastest Laps"] || row["H"],
-    dnfs: row["DNFs"] || row["I"],
-    races: row["Races"] || row["J"],
-  }));
-
-  // Constructors table: columns L-S
-  const constructors = data.map((row) => ({
-    position: row["L"],
-    team: row["M"],
-    wins: row["O"],
-    podiums: row["P"],
-    poles: row["Q"],
-    fastestLaps: row["R"],
-    dnfs: row["S"],
-  })).filter(c => c.position); // only rows that exist
-
-  const tabStyle = (tab) => ({
-    padding: "0.75rem 1.5rem",
-    cursor: "pointer",
-    fontWeight: activeTab === tab ? "bold" : "normal",
-    backgroundColor: activeTab === tab ? "#6B46C1" : "#E5E5E5",
-    color: activeTab === tab ? "#fff" : "#333",
-    borderRadius: "0.5rem 0.5rem 0 0",
-    marginRight: "0.5rem",
-    boxShadow: activeTab === tab ? "0 4px 6px rgba(0,0,0,0.1)" : "none",
+  picks.forEach(pick => {
+    const driverResult = results.find(r => r[1] === pick);
+    if (driverResult) {
+      const pos = parseInt(driverResult[2], 10) - 1;
+      points += F1_POINTS[pos] || 0;
+    }
   });
 
-  const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginTop: "1rem",
-    borderRadius: "0.5rem",
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-  };
+  return points;
+}
 
-  const thStyle = {
-    backgroundColor: "#dd3333ff",
-    color: "#fff",
-    padding: "0.5rem",
-    textAlign: "left",
-  };
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  try {
+    const { username, picks, constructor } = req.body;
+    if (!username || !picks || !constructor) return res.status(400).json({ error: 'Missing data' });
 
-  const tdStyle = {
-    padding: "0.5rem",
-    color: "#000",
-  };
+    const totalPoints = await calculatePoints(picks);
+    await writeUserPick(username, [...picks, constructor], totalPoints);
 
-  const getRowStyle = (index) => ({
-    backgroundColor: index % 2 === 0 ? "#F7F7F7" : "#fff",
-    transition: "background-color 0.2s",
-  });
-
-  return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif", backgroundColor: "#F9F9F9", minHeight: "100vh" }}>
-      <h1 style={{ color: "#6B46C1", fontSize: "2rem", marginBottom: "1rem" }}> TGC Standings</h1>
-
-      {/* Tabs */}
-      <div style={{ display: "flex", marginBottom: "1rem" }}>
-        <div style={tabStyle("drivers")} onClick={() => setActiveTab("drivers")}>Drivers</div>
-        <div style={tabStyle("constructors")} onClick={() => setActiveTab("constructors")}>Constructors</div>
-      </div>
-
-      {/* Drivers Table */}
-      {activeTab === "drivers" && (
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              {["Position","Driver","Team","Points","Wins","Podiums","Poles","Fastest Laps","DNFs","Races"].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {drivers.map((d, i) => (
-              <tr key={i} style={getRowStyle(i)} 
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
-                <td style={tdStyle}>{d.position}</td>
-                <td style={tdStyle}>{d.driver}</td>
-                <td style={tdStyle}>{d.team}</td>
-                <td style={tdStyle}>{d.points}</td>
-                <td style={tdStyle}>{d.wins}</td>
-                <td style={tdStyle}>{d.podiums}</td>
-                <td style={tdStyle}>{d.poles}</td>
-                <td style={tdStyle}>{d.fastestLaps}</td>
-                <td style={tdStyle}>{d.dnfs}</td>
-                <td style={tdStyle}>{d.races}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {/* Constructors Table */}
-      {activeTab === "constructors" && (
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              {["Position","Team","Wins","Podiums","Poles","Fastest Laps","DNFs"].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {constructors.map((c, i) => (
-              <tr key={i} style={getRowStyle(i)} 
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#EDEDED"} 
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = getRowStyle(i).backgroundColor}>
-                <td style={tdStyle}>{c.position}</td>
-                <td style={tdStyle}>{c.team}</td>
-                <td style={tdStyle}>{c.wins}</td>
-                <td style={tdStyle}>{c.podiums}</td>
-                <td style={tdStyle}>{c.poles}</td>
-                <td style={tdStyle}>{c.fastestLaps}</td>
-                <td style={tdStyle}>{c.dnfs}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
-  );
+    res.status(200).json({ message: 'Picks saved', totalPoints });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save picks' });
+  }
 }
