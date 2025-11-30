@@ -14,19 +14,19 @@ export async function GET() {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Constructors!A:B",     // name + price
+      range: "Constructors!A:B", // <-- fetch columns A and B
     });
 
     const rows = response.data.values || [];
 
-    const constructors = rows.map((r) => ({
-      name: r[0] || "",
-      price: r[1] || "",              // COLUMN B = index 1
+    const cleaned = rows.slice(1).map(row => ({
+      name: row[0] || "",
+      price: Number(row[1]) || 0,  // COLUMN B
     }));
 
-    return Response.json(constructors);
+    return Response.json(cleaned);
   } catch (err) {
     console.error(err);
-    return Response.json({ error: "Failed to load constructors" }, { status: 500 });
+    return Response.json({ error: "Failed to fetch constructors" }, { status: 500 });
   }
 }

@@ -14,20 +14,20 @@ export async function GET() {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Drivers!A:C",       // includes name + price column
+      range: "Drivers!A:C", // <-- fetch columns A to C
     });
 
     const rows = response.data.values || [];
 
-    // Convert rows → objects
-    const drivers = rows.map((r) => ({
-      name: r[0] || "",
-      price: r[2] || "",           // COLUMN C = index 2
+    // skip header row
+    const cleaned = rows.slice(1).map(row => ({
+      name: row[0] || "",
+      price: Number(row[2]) || 0,   // COLUMN C
     }));
 
-    return Response.json(drivers);
+    return Response.json(cleaned);
   } catch (err) {
     console.error(err);
-    return Response.json({ error: "Failed to load drivers" }, { status: 500 });
+    return Response.json({ error: "Failed to fetch drivers" }, { status: 500 });
   }
 }
