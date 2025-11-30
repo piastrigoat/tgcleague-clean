@@ -1,11 +1,14 @@
-let PICKS_DB = []; // same as picks file, but ideally move to a database
+import { promises as fs } from "fs";
+import path from "path";
 
 export async function GET() {
-  // placeholder: return dummy points
-  const leaderboard = PICKS_DB.map(u => ({
-    username: u.username,
-    totalPoints: Math.floor(Math.random() * 100), // replace with real logic
-  }));
+  const filePath = path.join(process.cwd(), "fantasyData.json");
 
-  return Response.json(leaderboard);
+  try {
+    const file = await fs.readFile(filePath, "utf8");
+    const data = JSON.parse(file);
+    return Response.json(data);
+  } catch {
+    return Response.json([]);
+  }
 }
