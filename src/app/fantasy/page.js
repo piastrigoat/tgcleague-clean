@@ -4,223 +4,97 @@ import { useState, useEffect } from "react";
 export default function FantasyPage() {
   const [username, setUsername] = useState("");
   const [drivers, setDrivers] = useState([]);
-  const [constructor, setConstructor] = useState("");
+  const [constructors, setConstructors] = useState([]);
   const [picks, setPicks] = useState(["", "", ""]);
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [constructorPick, setConstructorPick] = useState("");
 
   useEffect(() => {
-    fetch("/api/drivers")
-      .then((r) => r.json())
-      .then(setDrivers);
+    fetch("/api/drivers").then((r) => r.json()).then(setDrivers);
+    fetch("/api/constructors").then((r) => r.json()).then(setConstructors);
   }, []);
-
-  const fetchLeaderboard = () => {
-    fetch("/api/leaderboard")
-      .then((r) => r.json())
-      .then(setLeaderboard);
-  };
-
-  useEffect(() => {
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const submitPicks = async () => {
-    await fetch("/api/picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, picks, constructor }),
-    });
-    fetchLeaderboard();
-  };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#000",
-        padding: "2rem",
-        fontFamily: "Inter, sans-serif",
-        color: "#fff",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "800px",
-          margin: "0 auto",
-          background: "#111",
-          padding: "2rem",
-          borderRadius: "1rem",
-          boxShadow: "0 0 20px rgba(0,0,0,0.6)",
-        }}
-      >
-        {/* Title */}
-        <h1
+    <main style={{ padding: "2rem", background: "#dd3333ff", minHeight: "100vh", color: "#fff" }}>
+      <h1 style={{ textAlign: "center", fontSize: "2.5rem", marginBottom: "2rem" }}>
+        TGC Fantasy League
+      </h1>
+
+      <div style={{ maxWidth: "600px", margin: "auto" }}>
+        <input
+          placeholder="Enter username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           style={{
-            textAlign: "center",
-            color: "#dd3333ff",
-            fontSize: "2.8rem",
+            width: "100%",
+            padding: "1rem",
             marginBottom: "2rem",
-            fontWeight: "900",
-            textShadow: "0 4px 10px rgba(0,0,0,0.4)",
+            borderRadius: "8px",
+            border: "none",
+            fontSize: "1.1rem"
           }}
-        >
-          TGC Fantasy League
-        </h1>
+        />
 
-        {/* Username */}
-        <div style={{ marginBottom: "2rem" }}>
-          <label style={{ fontSize: "1.2rem" }}>Username</label>
-          <input
-            placeholder="Enter your fantasy name"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.8rem",
-              marginTop: "0.5rem",
-              borderRadius: "0.5rem",
-              border: "2px solid #dd3333ff",
-              background: "#000",
-              color: "#fff",
-              fontSize: "1rem",
-            }}
-          />
-        </div>
-
-        {/* Pick Drivers */}
-        <h2
-          style={{
-            color: "#dd3333ff",
-            fontSize: "1.8rem",
-            marginBottom: "1rem",
-          }}
-        >
-          Pick 3 Drivers
-        </h2>
-        {picks.map((d, i) => (
+        <h2>Pick 3 Drivers</h2>
+        {picks.map((_, i) => (
           <select
             key={i}
             value={picks[i]}
-            onChange={(e) =>
-              setPicks((p) => {
-                p[i] = e.target.value;
-                return [...p];
-              })
-            }
+            onChange={(e) => {
+              const newPicks = [...picks];
+              newPicks[i] = e.target.value;
+              setPicks(newPicks);
+            }}
             style={{
               width: "100%",
-              padding: "0.8rem",
+              padding: "1rem",
               marginBottom: "1rem",
-              borderRadius: "0.5rem",
-              background: "#222",
-              border: "2px solid #dd3333ff",
-              color: "#fff",
+              borderRadius: "8px",
+              fontSize: "1.1rem"
             }}
           >
-            <option value="">Select driver</option>
-            {drivers.map((dr) => (
-              <option key={dr[0]}>{dr[0]}</option>
+            <option value="">Select Driver</option>
+            {drivers.map((d) => (
+              <option key={d.name} value={d.name}>
+                {d.name} (${d.price})
+              </option>
             ))}
           </select>
         ))}
 
-        {/* Constructor */}
-        <h2
-          style={{
-            color: "#dd3333ff",
-            fontSize: "1.8rem",
-            marginTop: "2rem",
-            marginBottom: "1rem",
-          }}
-        >
-          Pick Constructor
-        </h2>
+        <h2>Pick Constructor</h2>
         <select
-          value={constructor}
-          onChange={(e) => setConstructor(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "0.8rem",
-            borderRadius: "0.5rem",
-            background: "#222",
-            border: "2px solid #dd3333ff",
-            color: "#fff",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <option value="">Select constructor</option>
-          {[...new Set(drivers.map((d) => d[1]))].map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-
-        {/* Button */}
-        <button
-          onClick={submitPicks}
+          value={constructorPick}
+          onChange={(e) => setConstructorPick(e.target.value)}
           style={{
             width: "100%",
             padding: "1rem",
-            background: "#dd3333ff",
-            color: "#fff",
-            fontSize: "1.2rem",
-            fontWeight: "700",
-            border: "none",
-            borderRadius: "0.6rem",
-            cursor: "pointer",
-            transition: "0.3s",
+            marginBottom: "2rem",
+            borderRadius: "8px",
+            fontSize: "1.1rem"
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "#ff4444")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "#dd3333ff")
-          }
+        >
+          <option value="">Select Constructor</option>
+          {constructors.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name} (${c.price})
+            </option>
+          ))}
+        </select>
+
+        <button
+          style={{
+            width: "100%",
+            padding: "1rem",
+            background: "#000",
+            color: "#dd3333ff",
+            fontSize: "1.3rem",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
         >
           Submit Picks
         </button>
-
-        {/* Leaderboard */}
-        <h2
-          style={{
-            color: "#dd3333ff",
-            fontSize: "2rem",
-            marginTop: "3rem",
-            textAlign: "center",
-          }}
-        >
-          Leaderboard
-        </h2>
-
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "1rem",
-            background: "#111",
-          }}
-        >
-          <thead>
-            <tr style={{ background: "#dd3333ff" }}>
-              <th style={{ padding: "0.8rem", textAlign: "left" }}>User</th>
-              <th style={{ padding: "0.8rem", textAlign: "left" }}>Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaderboard.map((u) => (
-              <tr
-                key={u.username}
-                style={{
-                  borderBottom: "1px solid #333",
-                }}
-              >
-                <td style={{ padding: "0.8rem" }}>{u.username}</td>
-                <td style={{ padding: "0.8rem" }}>{u.totalPoints}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </main>
   );

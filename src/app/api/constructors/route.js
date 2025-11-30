@@ -13,20 +13,20 @@ export async function GET() {
 
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Drivers",
+      range: "Constructors",
     });
 
     const rows = res.data.values || [];
 
-    // Format: [Name, ?, Price]
-    const drivers = rows.slice(1).map((row) => ({
+    // Format: [Name, Price]
+    const constructors = rows.slice(1).map((row) => ({
       name: row[0] || "",
-      price: row[2] || "",
+      price: row[1] || "",
     }));
 
-    return Response.json(drivers);
+    return Response.json(constructors);
   } catch (err) {
     console.error(err);
-    return Response.json({ error: "Failed to load drivers" }, { status: 500 });
+    return Response.json({ error: "Failed to load constructors" }, { status: 500 });
   }
 }
