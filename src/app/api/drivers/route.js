@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 
 const SHEET_ID = process.env.SHEET_ID;
+
 const auth = new google.auth.GoogleAuth({
   credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
   scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
@@ -11,17 +12,17 @@ export async function GET() {
     const client = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: client });
 
-    const res = await sheets.spreadsheets.values.get({
+    const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Drivers",
+      range: "Drivers!A:C",       // includes name + price column
     });
 
-    const rows = res.data.values || [];
+    const rows = response.data.values || [];
 
-    // Format: [Name, ?, Price]
-    const drivers = rows.slice(1).map((row) => ({
-      name: row[0] || "",
-      price: row[2] || "",
+    // Convert rows → objects
+    const drivers = rows.map((r) => ({
+      name: r[0] || "",
+      price: r[2] || "",           // COLUMN C = index 2
     }));
 
     return Response.json(drivers);
