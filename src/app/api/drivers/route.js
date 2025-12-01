@@ -1,32 +1,39 @@
 import { google } from "googleapis";
+import { NextResponse } from "next/server";
 
-async function getClient() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-  return await auth.getClient();
-}
+const SHEET_ID = process.env.SHEET_ID;
+
+const auth = new google.auth.GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+});
 
 export async function GET() {
   try {
-    const client = await getClient();
+    const client = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: client });
 
     const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.SHEET_ID,
-      range: "Drivers!A:C",
+      spreadsheetId: SHEET_ID,
+      range: "Drivers!A2:C", // skip header row
     });
 
-    const [, ...rows] = res.data.values || [];
-    const drivers = rows.map((r) => ({
-      name: r[0],
-      price: Number(r[2] || 0),
-    }));
+    const rows = res.data.values || [];
 
-    return Response.json(drivers);
+    const drivers = rows
+      .filter((row) => row[0]) // only rows with a driver name
+      .map((row) => ({
+        name: row[0],
+        constructor: row[1] || "",
+        price: Number(row[2]) || 0,
+      }));
+
+    return NextResponse.json(drivers);
   } catch (err) {
-    console.error(err);
-    return new Response("Failed", { status: 500 });
+    console.error("Error in /api/drivers:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch drivers" },
+      { status: 500 }
+    );
   }
 }

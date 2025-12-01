@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+const BUDGET = 50;
+const RED = "#dd3333"; // your preferred red
 
 export default function FantasyPage() {
   const [username, setUsername] = useState("");
@@ -8,206 +11,368 @@ export default function FantasyPage() {
   const [constructors, setConstructors] = useState([]);
   const [picks, setPicks] = useState(["", "", ""]);
   const [constructorPick, setConstructorPick] = useState("");
-  const [budgetLeft, setBudgetLeft] = useState(50);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Fetch Drivers
+  // Fetch drivers & constructors
   useEffect(() => {
-    fetch("/api/drivers")
-      .then((res) => res.json())
-      .then((values) => {
-        const rows = values.slice(1); // skip header row
-        const formatted = rows.map((row) => ({
-          name: row[0] || "",
-          constructor: row[1] || "",
-          price: Number(row[2]) || 0,
-        }));
-        setDrivers(formatted);
-      });
+    const load = async () => {
+      try {
+        const [dRes, cRes] = await Promise.all([
+          fetch("/api/drivers"),
+          fetch("/api/constructors"),
+        ]);
+        const dJson = await dRes.json();
+        const cJson = await cRes.json();
+        setDrivers(Array.isArray(dJson) ? dJson : []);
+        setConstructors(Array.isArray(cJson) ? cJson : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
   }, []);
 
-  // Fetch Constructors
+  // Fetch leaderboard
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch("/api/leaderboard");
+      const json = await res.json();
+      setLeaderboard(Array.isArray(json) ? json : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/constructors")
-      .then((res) => res.json())
-      .then((values) => {
-        const rows = values.slice(1); // skip header row
-        const formatted = rows.map((row) => ({
-          name: row[0] || "",
-          price: Number(row[1]) || 0,
-        }));
-        setConstructors(formatted);
-      });
+    fetchLeaderboard();
+    const interval = setInterval(fetchLeaderboard, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Calculate budget
-  useEffect(() => {
+  // Compute total cost
+  const totalCost = (() => {
     let total = 0;
-
-    picks.forEach((pick) => {
-      const driver = drivers.find((d) => d.name === pick);
-      if (driver) total += driver.price;
+    picks.forEach((pName) => {
+      if (!pName) return;
+      const d = drivers.find((dr) => dr.name === pName);
+      if (d) total += d.price || 0;
     });
+    if (constructorPick) {
+      const c = constructors.find((co) => co.name === constructorPick);
+      if (c) total += c.price || 0;
+    }
+    return total;
+  })();
 
-    const team = constructors.find((c) => c.name === constructorPick);
-    if (team) total += team.price;
+  const overBudget = totalCost > BUDGET;
 
-    setBudgetLeft(50 - total);
-  }, [picks, constructorPick, drivers, constructors]);
+  const handlePickChange = (index, value) => {
+    setPicks((prev) => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
 
-  const submitTeam = async () => {
+  const submitPicks = async () => {
     if (!username) {
-      alert("Enter a username");
+      setStatus("Please enter a username.");
+      return;
+    }
+    if (picks.some((p) => !p) || !constructorPick) {
+      setStatus("Please select 3 drivers and 1 constructor.");
+      return;
+    }
+    if (overBudget) {
+      setStatus("Your team is over budget. Max is $50.");
       return;
     }
 
-    if (budgetLeft < 0) {
-      alert("Your selection exceeds the $50 budget!");
-      return;
+    setLoading(true);
+    setStatus("");
+
+    try {
+      const res = await fetch("/api/picks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          picks,
+          constructor: constructorPick,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to save picks");
+      }
+
+      setStatus("Picks saved! Leaderboard updated.");
+      fetchLeaderboard();
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || "Error saving picks.");
+    } finally {
+      setLoading(false);
     }
-
-    await fetch("/api/picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        drivers: picks,
-        constructor: constructorPick,
-      }),
-    });
-
-    alert("Team saved!");
   };
 
   return (
-    <div
+    <main
       style={{
-        padding: "2rem",
-        maxWidth: "700px",
-        margin: "auto",
-        color: "#fff",
+        minHeight: "100dvh",
+        background: RED,
         fontFamily: "Inter, sans-serif",
+        padding: "2rem 1rem",
+        display: "flex",
+        justifyContent: "center",
       }}
     >
-      <h1
-        style={{
-          fontSize: "2.5rem",
-          textAlign: "center",
-          marginBottom: "1rem",
-          color: "#dd3333ff",
-        }}
-      >
-        TGC Fantasy
-      </h1>
-
       <div
         style={{
-          background: "#111",
+          width: "100%",
+          maxWidth: "900px",
+          backgroundColor: "#111",
+          borderRadius: "16px",
           padding: "2rem",
-          borderRadius: "1rem",
-          boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+          color: "#fff",
         }}
       >
-        <label style={{ fontWeight: "bold" }}>Username</label>
-        <input
+        <h1
           style={{
-            width: "100%",
-            padding: "0.7rem",
-            marginTop: "0.5rem",
-            marginBottom: "1.5rem",
-            borderRadius: "0.5rem",
-            border: "1px solid #444",
-            background: "#222",
-            color: "#fff",
+            fontSize: "2.4rem",
+            marginBottom: "0.5rem",
+            textAlign: "center",
           }}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Enter Username"
-        />
+        >
+          TGC Fantasy League
+        </h1>
+        <p
+          style={{
+            textAlign: "center",
+            marginBottom: "1.5rem",
+            opacity: 0.8,
+          }}
+        >
+          Pick 3 drivers and 1 constructor. Stay under ${BUDGET} and score points
+          based on real TGC race results.
+        </p>
 
-        <h2 style={{ marginBottom: "0.5rem", color: "#dd3333ff" }}>
-          Choose 3 Drivers
-        </h2>
-
-        {picks.map((pick, index) => (
-          <select
-            key={index}
-            value={pick}
-            onChange={(e) => {
-              const newPicks = [...picks];
-              newPicks[index] = e.target.value;
-              setPicks(newPicks);
-            }}
+        {/* Username */}
+        <div
+          style={{
+            marginBottom: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+          }}
+        >
+          <label style={{ fontWeight: 600 }}>Username</label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your TGC name"
             style={{
-              width: "100%",
-              padding: "0.7rem",
-              marginBottom: "1rem",
-              borderRadius: "0.5rem",
-              background: "#222",
+              padding: "0.75rem 1rem",
+              borderRadius: "8px",
+              border: "1px solid #333",
+              backgroundColor: "#000",
               color: "#fff",
-              border: "1px solid #444",
+            }}
+          />
+        </div>
+
+        {/* Driver picks */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <h2 style={{ fontSize: "1.4rem", marginBottom: "0.75rem" }}>
+            Pick 3 Drivers
+          </h2>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.75rem",
             }}
           >
-            <option value="">Select driver</option>
-            {drivers.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name} - ${d.price}
+            {picks.map((value, i) => (
+              <select
+                key={i}
+                value={value}
+                onChange={(e) => handlePickChange(i, e.target.value)}
+                style={{
+                  flex: "1 1 200px",
+                  padding: "0.6rem 0.8rem",
+                  borderRadius: "8px",
+                  border: "1px solid #333",
+                  backgroundColor: "#000",
+                  color: "#fff",
+                }}
+              >
+                <option value="">Select driver</option>
+                {drivers.map((dr) => (
+                  <option key={dr.name} value={dr.name}>
+                    {dr.name} — ${dr.price}
+                  </option>
+                ))}
+              </select>
+            ))}
+          </div>
+        </div>
+
+        {/* Constructor pick */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <h2 style={{ fontSize: "1.4rem", marginBottom: "0.75rem" }}>
+            Pick 1 Constructor
+          </h2>
+          <select
+            value={constructorPick}
+            onChange={(e) => setConstructorPick(e.target.value)}
+            style={{
+              width: "100%",
+              maxWidth: "300px",
+              padding: "0.6rem 0.8rem",
+              borderRadius: "8px",
+              border: "1px solid #333",
+              backgroundColor: "#000",
+              color: "#fff",
+            }}
+          >
+            <option value="">Select constructor</option>
+            {constructors.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name} — ${c.price}
               </option>
             ))}
           </select>
-        ))}
+        </div>
 
-        <h2 style={{ marginTop: "1rem", color: "#dd3333ff" }}>
-          Choose 1 Constructor
-        </h2>
-
-        <select
-          value={constructorPick}
-          onChange={(e) => setConstructorPick(e.target.value)}
+        {/* Budget info */}
+        <div
           style={{
-            width: "100%",
-            padding: "0.7rem",
-            marginBottom: "1rem",
-            borderRadius: "0.5rem",
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #444",
+            marginBottom: "1.5rem",
+            fontWeight: 600,
+            color: overBudget ? "#ff8080" : "#9bff9b",
           }}
         >
-          <option value="">Select constructor</option>
-          {constructors.map((c) => (
-            <option key={c.name} value={c.name}>
-              {c.name} - ${c.price}
-            </option>
-          ))}
-        </select>
+          Total cost: ${totalCost.toFixed(1)} / ${BUDGET}{" "}
+          {overBudget && " (Over budget!)"}
+        </div>
 
-        <h3
-          style={{
-            marginTop: "1rem",
-            fontSize: "1.4rem",
-            color: budgetLeft < 0 ? "#ff4444" : "#44ff44",
-          }}
-        >
-          Budget Left: ${budgetLeft}
-        </h3>
+        {/* Status message */}
+        {status && (
+          <div
+            style={{
+              marginBottom: "1rem",
+              padding: "0.75rem 1rem",
+              borderRadius: "8px",
+              backgroundColor: "#222",
+              border: "1px solid #444",
+              fontSize: "0.95rem",
+            }}
+          >
+            {status}
+          </div>
+        )}
 
+        {/* Submit button */}
         <button
-          onClick={submitTeam}
+          onClick={submitPicks}
+          disabled={loading}
           style={{
             width: "100%",
-            padding: "1rem",
-            background: "#dd3333ff",
+            maxWidth: "260px",
+            padding: "0.9rem 1.2rem",
+            borderRadius: "999px",
+            backgroundColor: loading ? "#333" : "#000",
+            color: RED,
+            fontWeight: 700,
             border: "none",
-            borderRadius: "0.5rem",
-            marginTop: "1.5rem",
-            fontSize: "1.2rem",
-            fontWeight: "bold",
-            cursor: "pointer",
+            cursor: loading ? "wait" : "pointer",
+            display: "block",
+            margin: "0 auto 2rem auto",
+            transition: "transform 0.2s, box-shadow 0.2s, background-color 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            if (loading) return;
+            e.currentTarget.style.transform = "scale(1.03)";
+            e.currentTarget.style.boxShadow =
+              "0 6px 18px rgba(0,0,0,0.8)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "none";
           }}
         >
-          Save Picks
+          {loading ? "Saving..." : "Save Fantasy Team"}
         </button>
+
+        {/* Leaderboard */}
+        <section>
+          <h2
+            style={{
+              fontSize: "1.6rem",
+              marginBottom: "0.75rem",
+              textAlign: "center",
+            }}
+          >
+            Leaderboard
+          </h2>
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                minWidth: "280px",
+                backgroundColor: "#000",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: RED }}>
+                  <th style={{ padding: "0.6rem", textAlign: "left" }}>Pos</th>
+                  <th style={{ padding: "0.6rem", textAlign: "left" }}>
+                    User
+                  </th>
+                  <th style={{ padding: "0.6rem", textAlign: "right" }}>
+                    Points
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((row, idx) => (
+                  <tr
+                    key={row.username}
+                    style={{
+                      backgroundColor:
+                        idx % 2 === 0 ? "#111" : "#181818",
+                    }}
+                  >
+                    <td style={{ padding: "0.6rem" }}>{idx + 1}</td>
+                    <td style={{ padding: "0.6rem" }}>{row.username}</td>
+                    <td style={{ padding: "0.6rem", textAlign: "right" }}>
+                      {row.totalPoints}
+                    </td>
+                  </tr>
+                ))}
+                {leaderboard.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      style={{ padding: "0.8rem", textAlign: "center" }}
+                    >
+                      No entries yet. Save your team to get on the board!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
