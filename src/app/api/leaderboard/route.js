@@ -31,7 +31,7 @@ export async function GET() {
     // 2) Results → sum points per driver
     const resultsRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Results!A2:J",
+      range: "FantasyResults!A2:J",
     });
     const resultRows = resultsRes.data.values || [];
     const driverPoints = {};
