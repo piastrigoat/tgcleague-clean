@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function FantasyPage() {
   const [username, setUsername] = useState("");
@@ -8,182 +8,206 @@ export default function FantasyPage() {
   const [constructors, setConstructors] = useState([]);
   const [picks, setPicks] = useState(["", "", ""]);
   const [constructorPick, setConstructorPick] = useState("");
+  const [budgetLeft, setBudgetLeft] = useState(50);
 
-  const [leaderboard, setLeaderboard] = useState([]);
-
-  // Fetch drivers + constructors
+  // Fetch Drivers
   useEffect(() => {
     fetch("/api/drivers")
-      .then((r) => r.json())
-      .then((data) => {
-        // Skip header row
-        const clean = data.slice(1).map((row) => ({
-          name: row[0],
-          constructor: row[1],
-          price: Number(row[2]),
+      .then((res) => res.json())
+      .then((values) => {
+        const rows = values.slice(1); // skip header row
+        const formatted = rows.map((row) => ({
+          name: row[0] || "",
+          constructor: row[1] || "",
+          price: Number(row[2]) || 0,
         }));
-        setDrivers(clean);
-      });
-
-    fetch("/api/constructors")
-      .then((r) => r.json())
-      .then((data) => {
-        const clean = data.slice(1).map((row) => ({
-          name: row[0],
-          price: Number(row[1]),
-        }));
-        setConstructors(clean);
+        setDrivers(formatted);
       });
   }, []);
 
-  // Fetch leaderboard
-  const fetchLeaderboard = () => {
-    fetch("/api/leaderboard")
-      .then((r) => r.json())
-      .then(setLeaderboard);
-  };
-
+  // Fetch Constructors
   useEffect(() => {
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 30000);
-    return () => clearInterval(interval);
+    fetch("/api/constructors")
+      .then((res) => res.json())
+      .then((values) => {
+        const rows = values.slice(1); // skip header row
+        const formatted = rows.map((row) => ({
+          name: row[0] || "",
+          price: Number(row[1]) || 0,
+        }));
+        setConstructors(formatted);
+      });
   }, []);
 
-  const submitPicks = async () => {
+  // Calculate budget
+  useEffect(() => {
+    let total = 0;
+
+    picks.forEach((pick) => {
+      const driver = drivers.find((d) => d.name === pick);
+      if (driver) total += driver.price;
+    });
+
+    const team = constructors.find((c) => c.name === constructorPick);
+    if (team) total += team.price;
+
+    setBudgetLeft(50 - total);
+  }, [picks, constructorPick, drivers, constructors]);
+
+  const submitTeam = async () => {
+    if (!username) {
+      alert("Enter a username");
+      return;
+    }
+
+    if (budgetLeft < 0) {
+      alert("Your selection exceeds the $50 budget!");
+      return;
+    }
+
     await fetch("/api/picks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username,
-        picks,
+        drivers: picks,
         constructor: constructorPick,
       }),
     });
 
-    fetchLeaderboard();
+    alert("Team saved!");
   };
 
   return (
-    <main
+    <div
       style={{
         padding: "2rem",
-        fontFamily: "sans-serif",
-        background: "#dd3333ff", // red theme
-        color: "white",
-        minHeight: "100vh",
+        maxWidth: "700px",
+        margin: "auto",
+        color: "#fff",
+        fontFamily: "Inter, sans-serif",
       }}
     >
-      <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
-        TGC Fantasy League
+      <h1
+        style={{
+          fontSize: "2.5rem",
+          textAlign: "center",
+          marginBottom: "1rem",
+          color: "#dd3333ff",
+        }}
+      >
+        TGC Fantasy
       </h1>
 
-      {/* USERNAME */}
-      <input
-        placeholder="Enter username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
+      <div
         style={{
-          padding: "0.7rem",
-          fontSize: "1rem",
-          borderRadius: "8px",
-          border: "none",
-          marginTop: "1rem",
-          marginBottom: "2rem",
-          width: "250px",
+          background: "#111",
+          padding: "2rem",
+          borderRadius: "1rem",
+          boxShadow: "0 0 20px rgba(0,0,0,0.5)",
         }}
-      />
-
-      {/* DRIVER PICKS */}
-      <h2>Pick 3 Drivers</h2>
-      {picks.map((p, idx) => (
-        <select
-          key={idx}
-          value={p}
-          onChange={(e) => {
-            const newPicks = [...picks];
-            newPicks[idx] = e.target.value;
-            setPicks(newPicks);
-          }}
+      >
+        <label style={{ fontWeight: "bold" }}>Username</label>
+        <input
           style={{
+            width: "100%",
             padding: "0.7rem",
-            fontSize: "1rem",
-            borderRadius: "8px",
+            marginTop: "0.5rem",
+            marginBottom: "1.5rem",
+            borderRadius: "0.5rem",
+            border: "1px solid #444",
+            background: "#222",
+            color: "#fff",
+          }}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter Username"
+        />
+
+        <h2 style={{ marginBottom: "0.5rem", color: "#dd3333ff" }}>
+          Choose 3 Drivers
+        </h2>
+
+        {picks.map((pick, index) => (
+          <select
+            key={index}
+            value={pick}
+            onChange={(e) => {
+              const newPicks = [...picks];
+              newPicks[index] = e.target.value;
+              setPicks(newPicks);
+            }}
+            style={{
+              width: "100%",
+              padding: "0.7rem",
+              marginBottom: "1rem",
+              borderRadius: "0.5rem",
+              background: "#222",
+              color: "#fff",
+              border: "1px solid #444",
+            }}
+          >
+            <option value="">Select driver</option>
+            {drivers.map((d) => (
+              <option key={d.name} value={d.name}>
+                {d.name} - ${d.price}
+              </option>
+            ))}
+          </select>
+        ))}
+
+        <h2 style={{ marginTop: "1rem", color: "#dd3333ff" }}>
+          Choose 1 Constructor
+        </h2>
+
+        <select
+          value={constructorPick}
+          onChange={(e) => setConstructorPick(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "0.7rem",
             marginBottom: "1rem",
-            width: "250px",
+            borderRadius: "0.5rem",
+            background: "#222",
+            color: "#fff",
+            border: "1px solid #444",
           }}
         >
-          <option value="">Select driver</option>
-          {drivers.map((d) => (
-            <option key={d.name} value={d.name}>
-              {d.name} – ${d.price}
+          <option value="">Select constructor</option>
+          {constructors.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name} - ${c.price}
             </option>
           ))}
         </select>
-      ))}
 
-      {/* CONSTRUCTOR PICK */}
-      <h2>Pick 1 Constructor</h2>
-      <select
-        value={constructorPick}
-        onChange={(e) => setConstructorPick(e.target.value)}
-        style={{
-          padding: "0.7rem",
-          fontSize: "1rem",
-          borderRadius: "8px",
-          marginBottom: "2rem",
-          width: "250px",
-        }}
-      >
-        <option value="">Select constructor</option>
-        {constructors.map((c) => (
-          <option key={c.name} value={c.name}>
-            {c.name} – ${c.price}
-          </option>
-        ))}
-      </select>
+        <h3
+          style={{
+            marginTop: "1rem",
+            fontSize: "1.4rem",
+            color: budgetLeft < 0 ? "#ff4444" : "#44ff44",
+          }}
+        >
+          Budget Left: ${budgetLeft}
+        </h3>
 
-      <br />
-
-      <button
-        onClick={submitPicks}
-        style={{
-          background: "black",
-          color: "#dd3333ff",
-          padding: "1rem 2rem",
-          borderRadius: "8px",
-          border: "none",
-          fontSize: "1.2rem",
-          cursor: "pointer",
-        }}
-      >
-        Save Picks
-      </button>
-
-      {/* LEADERBOARD */}
-      <h2 style={{ marginTop: "3rem" }}>Leaderboard</h2>
-      <table
-        style={{
-          width: "100%",
-          background: "black",
-          borderRadius: "8px",
-          marginTop: "1rem",
-        }}
-      >
-        <thead>
-          <tr>
-            <th style={{ padding: "1rem" }}>User</th>
-            <th style={{ padding: "1rem" }}>Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leaderboard.map((u) => (
-            <tr key={u.username}>
-              <td style={{ padding: "1rem" }}>{u.username}</td>
-              <td style={{ padding: "1rem" }}>{u.totalPoints}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+        <button
+          onClick={submitTeam}
+          style={{
+            width: "100%",
+            padding: "1rem",
+            background: "#dd3333ff",
+            border: "none",
+            borderRadius: "0.5rem",
+            marginTop: "1.5rem",
+            fontSize: "1.2rem",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Save Picks
+        </button>
+      </div>
+    </div>
   );
 }
