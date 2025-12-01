@@ -1,30 +1,35 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { google } from "googleapis";
+
+async function getClient() {
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  return await auth.getClient();
+}
 
 export async function POST(req) {
-  const body = await req.json();
-  const { username, picks, constructor } = body;
-
-  const filePath = path.join(process.cwd(), "fantasyData.json");
-
-  let data = [];
   try {
-    const file = await fs.readFile(filePath, "utf8");
-    data = JSON.parse(file);
-  } catch {
-    data = [];
+    const body = await req.json();
+    const { username, picks, constructor } = body;
+
+    if (!username) return new Response("Username required", { status: 400 });
+
+    const client = await getClient();
+    const sheets = google.sheets({ version: "v4", auth: client });
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: "Users!A:F",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[username, picks[0], picks[1], picks[2], constructor, new Date().toISOString()]],
+      },
+    });
+
+    return Response.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return new Response("Failed to save picks", { status: 500 });
   }
-
-  // overwrite if user already exists
-  const existing = data.find(u => u.username === username);
-  if (existing) {
-    existing.picks = picks;
-    existing.constructor = constructor;
-  } else {
-    data.push({ username, picks, constructor, totalPoints: 0 });
-  }
-
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-
-  return Response.json({ status: "Saved" });
 }
