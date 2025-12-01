@@ -148,7 +148,7 @@ export default function FantasyPage() {
             textAlign: "center",
           }}
         >
-          TGC Fantasy League
+          TGC Fantasy
         </h1>
         <p
           style={{
