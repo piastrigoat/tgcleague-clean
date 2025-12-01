@@ -158,7 +158,7 @@ export default function FantasyPage() {
           }}
         >
           Pick 3 drivers and 1 constructor. Stay under ${BUDGET} and score points
-          based on real TGC race results.
+          based on TGC race results.
         </p>
 
         {/* Username */}
