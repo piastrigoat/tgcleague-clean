@@ -75,7 +75,7 @@ export default function StatsPage() {
           fontWeight: "800",
         }}
       >
-        🔥 Driver Stats
+        📊 Driver Stats
       </h1>
 
       {/* DRIVER SELECT */}
