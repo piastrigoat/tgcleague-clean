@@ -28,53 +28,63 @@ export default function TrackDataPage() {
   }, []);
 
   const thStyle = {
-    backgroundColor: "#dd3333ff",
+    backgroundColor: "#dd3333ff", // red
     color: "#fff",
     padding: "0.75rem",
     textAlign: "left",
     fontSize: "0.95rem",
+    borderBottom: "2px solid #000",
   };
 
   const tdStyle = {
     padding: "0.75rem",
     color: "#000",
     fontSize: "0.9rem",
+    borderBottom: "1px solid #ddd",
   };
 
   const getRowStyle = (index) => ({
-    backgroundColor: index % 2 === 0 ? "#F7F7F7" : "#fff",
+    backgroundColor: index % 2 === 0 ? "#f4f4f4" : "#fff",
   });
 
   return (
     <main
       style={{
         padding: "2rem",
-        fontFamily: "sans-serif",
-        backgroundColor: "#F9F9F9",
-        minHeight: "100dvh", // mobile-safe viewport height
+        fontFamily: "Inter, sans-serif",
+        backgroundColor: "#111", // black background
+        minHeight: "100dvh",
+        color: "#fff",
       }}
     >
       <h1
         style={{
-          color: "#6B46C1",
-          fontSize: "2rem",
-          marginBottom: "1rem",
+          color: "#dd3333ff",
+          fontSize: "2.4rem",
+          marginBottom: "1.5rem",
+          fontWeight: "800",
+          textAlign: "center",
+          textShadow: "0 4px 10px rgba(0,0,0,0.4)",
         }}
       >
         🏁 Track Data
       </h1>
 
-      {/* Wrap the table in a scrollable container for mobile */}
-      <div style={{ overflowX: "auto" }}>
+      {/* Scroll container */}
+      <div
+        style={{
+          overflowX: "auto",
+          backgroundColor: "#fff",
+          borderRadius: "12px",
+          padding: "1rem",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+        }}
+      >
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            borderRadius: "0.5rem",
-            overflow: "hidden",
-            backgroundColor: "#fff",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            minWidth: "600px", // ensures table scrolls nicely on mobile
+            minWidth: "600px",
           }}
         >
           <thead>
@@ -87,7 +97,7 @@ export default function TrackDataPage() {
                 "",
                 "Most Poles",
                 "",
-                "Track Record Holder",
+                "Record Holder",
                 "Track Record",
               ].map((h) => (
                 <th key={h} style={thStyle}>
@@ -96,6 +106,7 @@ export default function TrackDataPage() {
               ))}
             </tr>
           </thead>
+
           <tbody>
             {data.map((row, i) => (
               <tr key={i} style={getRowStyle(i)}>
