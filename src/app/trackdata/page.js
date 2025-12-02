@@ -44,7 +44,7 @@ export default function TrackDataPage() {
   };
 
   const getRowStyle = (index) => ({
-    backgroundColor: index % 2 === 0 ? "#f4f4f4" : "#fff",
+    backgroundColor: index % 2 === 0 ? "#111" : "#1a1a1a",
   });
 
   return (
