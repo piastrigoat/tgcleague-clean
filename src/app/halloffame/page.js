@@ -25,25 +25,41 @@ export default function Page() {
       </p>
     );
 
-  let headers = data[0].map((header) => {
-    const lower = header.toLowerCase();
-    const emojiMap: any = {
-      championships: "🏆 Championships",
-      wins: "🏁 Wins",
-      podiums: "🥉 Podiums",
-      poles: "📌 Poles",
-      "fastest laps": "⏱️ Fastest Laps",
-      "race starts": "🏎️ Race Starts",
-      points: "💯 Points",
-      dnfs: "❌ DNFs",
-      "penalty points": "⚠️ Penalty Points",
-      "penalty seconds": "⏲️ Penalty Seconds",
-      "sprint wins": "🏁 Sprint Wins",
-      "sprint podiums": "🥉 Sprint Podiums",
-      "sprint poles": "📌 Sprint Poles",
-      "sprint fastest laps": "⏱️ Sprint Fastest Laps",
-    };
-    return emojiMap[lower] || header;
+  // Extract headers and rows
+  let headers = data[0];
+  headers = headers.map((header) => {
+    switch (header.toLowerCase()) {
+      case "championships":
+        return "🏆 Championships";
+      case "wins":
+        return "🏁 Wins";
+      case "podiums":
+        return "🥉 Podiums";
+      case "poles":
+        return "📌 Poles";
+      case "fastest laps":
+        return "⏱️ Fastest Laps";
+      case "race starts":
+        return "🏎️ Race Starts";
+      case "points":
+        return "💯 Points";
+      case "dnfs":
+        return "❌ DNFs";
+      case "penalty points":
+        return "⚠️ Penalty Points";
+      case "penalty seconds":
+        return "⏲️ Penalty Seconds";
+      case "sprint wins":
+        return "🏁 Sprint Wins";
+      case "sprint podiums":
+        return "🥉 Sprint Podiums";
+      case "sprint poles":
+        return "📌 Sprint Poles";
+      case "sprint fastest laps":
+        return "⏱️ Sprint Fastest Laps";
+      default:
+        return header;
+    }
   });
 
   const rows = data.slice(1);
@@ -53,8 +69,8 @@ export default function Page() {
       style={{
         padding: "2rem",
         fontFamily: "Inter, sans-serif",
+        background: "#111",
         minHeight: "100vh",
-        backgroundColor: "#111", // black background
         color: "#fff",
       }}
     >
@@ -62,47 +78,40 @@ export default function Page() {
         style={{
           color: "#dd3333ff",
           marginBottom: "2rem",
-          textShadow: "2px 2px 4px rgba(0,0,0,0.4)",
+          textShadow: "1px 1px 3px black",
           textAlign: "center",
-          fontSize: "2.5rem",
+          fontSize: "2.8rem",
           fontWeight: "800",
         }}
       >
         🏆 TGC Hall of Fame
       </h1>
 
-      <div
-        style={{
-          overflowX: "auto",
-          borderRadius: "12px",
-          padding: "1rem",
-        }}
-      >
+      <div style={{ overflowX: "auto" }}>
         <table
           style={{
             borderCollapse: "separate",
             borderSpacing: "0",
             width: "100%",
             minWidth: "900px",
-            backgroundColor: "#1a1a1a",
+            boxShadow: "0 0 20px rgba(0,0,0,0.4)",
             borderRadius: "12px",
             overflow: "hidden",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
+            background: "#1a1a1a",
           }}
         >
-          <thead>
+          <thead style={{ backgroundColor: "#dd3333ff" }}>
             <tr>
               {headers.map((header, i) => (
                 <th
                   key={i}
                   style={{
-                    backgroundColor: "#dd3333ff",
                     color: "#fff",
                     padding: "1rem",
                     textAlign: "center",
-                    fontWeight: "700",
-                    letterSpacing: "0.5px",
-                    borderBottom: "3px solid #aa2222",
+                    fontWeight: "bold",
+                    fontSize: "1.1rem",
+                    borderBottom: "2px solid #000",
                   }}
                 >
                   {header}
@@ -116,28 +125,29 @@ export default function Page() {
               <tr
                 key={i}
                 style={{
-                  backgroundColor: i % 2 === 0 ? "#222" : "#2c2c2c",
-                  transition: "0.25s",
+                  backgroundColor: i % 2 === 0 ? "#111" : "#1a1a1a",
+                  transition: "all 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#333")
+                  (e.currentTarget.style.backgroundColor = "#dd3333aa")
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor =
-                    i % 2 === 0 ? "#222" : "#2c2c2c")
+                    i % 2 === 0 ? "#111" : "#1a1a1a")
                 }
               >
                 {row.map((cell, j) => (
                   <td
                     key={j}
                     style={{
-                      padding: "0.9rem 1rem",
+                      padding: "0.75rem 1rem",
                       textAlign: "center",
+                      borderBottom: "1px solid #333",
+                      fontSize: "0.95rem",
                       color: "#fff",
-                      borderBottom: "1px solid #444",
                     }}
                   >
-                    {cell || "-"}
+                    {cell}
                   </td>
                 ))}
               </tr>
