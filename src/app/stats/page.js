@@ -32,25 +32,26 @@ export default function StatsPage() {
   const drivers = data.map((d) => d["Driver"]).filter(Boolean);
   const driver = data.find((d) => d["Driver"] === selectedDriver);
 
-  // CARD STYLE
+  // UPDATED CARD STYLE (Black with red glow)
   const card = {
-    background: "#fff",
+    background: "#111",
     borderRadius: "16px",
     padding: "1.5rem",
     width: "100%",
     maxWidth: "450px",
     margin: "1rem auto",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+    boxShadow: "0 6px 20px rgba(221,51,51,0.35)",
     border: "2px solid #dd3333ff",
+    color: "#fff",
   };
 
   const row = {
     display: "flex",
     justifyContent: "space-between",
     padding: "0.6rem 0",
-    borderBottom: "1px solid #eee",
+    borderBottom: "1px solid #333",
     fontSize: "1.1rem",
-    color: "#000",
+    color: "#fff",
   };
 
   const label = { fontWeight: "700" };
